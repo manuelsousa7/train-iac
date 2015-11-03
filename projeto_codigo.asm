@@ -112,41 +112,47 @@ botoes:
     PUSH R1
 	PUSH R3
 	PUSH R4
+	PUSH R7
     PUSH R9
     PUSH R10
     PUSH R11
 	
     MOV R10, estado_botoes
-	ADD R10, R6
+	CMP R10, 0					; vê se algum botão está ativado
+	JNZ botoes_fim_2			; se não estiver, vai para o fim da rotina
+	
+	ADD R10, R6					;adiciona o indice do botao a analisar
     MOVB R11, [R10]               ; obtém estado atual do botao x
 	MOV R3, mascara_1			
 	MOVB R4, [R3]				; le o valor da mascara_1
-	CMP R4, 80H				; vai ver se o bit a 1 da máscara já chegou ao índice 7
-	JZ botoes_0			; se nao chegou vai saltar a próxima instrução
-	MOVB R4, 80H				; se sim, vai por a mascara a 1H
+	MOV R7, 0100H
+	CMP R4, R7					; vai ver se o bit a 1 da máscara já passou o índice 7
+	JZ 	espera_botao_premido		; se nao chegou vai saltar a próxima instrução
+	
+	MOV R7, 1
+	MOV [R3], R7
+	MOVB R4, [R3]				; se sim, vai por a mascara a 01H
+	MOV R6, 0	 	
+	CMP R11, 1
+	JNZ botoes_sub
      
-botoes_0:					; estado 0 - À espera que o botão seja premido
-	CMP	R11, 0				; estamos no estado 0?
-	JNZ	botoes_1
-
 espera_botao_premido:
-    MOV	R9, TECLADO_1       ; endereço do porto do teclado_1
-    MOVB	R1, [R9]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
+    MOVB	R1, [R10]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
     AND  R1, R4                    ; testa o botão de pressão x (indice depende da mascara_1)
-    JZ   botao_5_fim              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
+    JZ   botoes_fim              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
 
 botao_premido:                     ; botão foi premido! Pode trocar a cor e passar ao estado 1
-     MOV  R1, R4                    ; número do semáforo cujan cor é para trocar
-     CALL troca_cor_semaforo       ; troca cor do semáforo
-     
+    MOV  R1, R6                    ; número do semáforo cuja cor é para trocar
+    CALL troca_cor_semaforo       ; troca cor do semáforo
+	
 	MOV	R11, 1
 	ADD R10, R6				;adiciona o indice do semáforo ao teclado_1
 	MOV	[R10], R11			; passa ao estado 1 (atualiza na variável)
-	JMP	botoes_fim              ; mas só na próxima iteração. Agora sai
+	JMP	botoes_sub              ; mas só na próxima iteração. Agora sai  <---------------------------------
 
-botoes_1:					; estado 1 - À espera que o botão seja libertado
+botoes_1:					; estado 1 - À espera que o botão seja libertado <-------------------------------
 	CMP	R11, 1
-	JNZ	botoes_fim              ; se estado desconhecido, sai e ignora
+	JNZ	botoes_sub              ; se estado desconhecido, sai e ignora
 
 espera_botao_livre:
     MOV	R9, TECLADO_1       ; endereço do porto dos botões de pressão
@@ -156,17 +162,13 @@ espera_botao_livre:
      
 	MOV	R11, 0
 	MOV	[R10], R11				; passa ao estado 0 (atualiza na variável)
-	JMP	botoes_sub
      
-botoes_max:						;COMO EXECUTAR ESTES COMANDOS SÓ SE R4 == 80H??
-	MOV R4, 01H					;COMO EXECUTAR ESTES COMANDOS SÓ SE R4 == 80H??
-	JMP botoes_fim				;COMO EXECUTAR ESTES COMANDOS SÓ SE R4 == 80H??
-	 
 botoes_sub:
 	ROL R4,1
 botoes_fim:
 	MOV [R3], R4
 	ADD R6, 1
+botoes_fim_2:
     POP R11
     POP R10
     POP R9
@@ -217,6 +219,7 @@ sensores_fim:
 ; **************************************************************************************************************
 troca_cor_semaforo:
     PUSH R2
+	
     CALL obtem_cor_semaforo       ; obtém cor do semáforo (em R2)
 
     CMP  R2, SEM_VERDE
@@ -232,6 +235,7 @@ poe_vermelho:
 atualiza_cor:
     CALL atualiza_cor_semaforo    ; atualiza cor do semáforo na tabela e na interface.
                                    ; R1 ainda tem o número do semáforo e R2 tem a nova cor
+								   
     POP R2
     RET
    
@@ -242,10 +246,12 @@ atualiza_cor:
 ; RETORNA:    R2 - cor do semáforo (SEM_VERDE, SEM_VERMELHO ou SEM_CINZENTO)
 ; **************************************************************************************************************
 obtem_cor_semaforo:
-    PUSH R10                      
+    PUSH R10
+	
     MOV  R10, cores_semaforos     ; endereço da tabela das cores dos vários semáforos
     ADD  R10, R6                  ; obtém endereço do byte de cor do semáforo (soma o número do semáforo à base da tabela)
     MOVB R2, [R10]                ; lê a cor do semáforo
+	
     POP R10                       
 	RET
 	
@@ -258,20 +264,22 @@ obtem_cor_semaforo:
 ; RETORNA:    nada
 ; **************************************************************************************************************
 atualiza_cor_semaforo:
-    PUSH R5                       ; guarda valores dos registos na pilha
+    PUSH R6                       ; guarda valores dos registos na pilha
     PUSH R10
     PUSH R11
+	
     MOV  R10, cores_semaforos     ; endereço da tabela das cores dos vários semáforos
-    ADD  R10, R5                  ; obtém endereço do byte de cor do semáforo (soma o número do semáforo à base da tabela)
+    ADD  R10, R6                  ; obtém endereço do byte de cor do semáforo (soma o número do semáforo à base da tabela)
     MOVB	[R10], R2             ; atualiza a cor do semáforo na tabela de cores dos semáforos
 
-    SHL  R5, 2                    ; formato do porto dos semáforos (número do semáforo tem de estar nos bits 7 a 2, cor nos bits 1 e 0)
-    ADD  R5, R2                   ; junta cor do semáforo (que fica nos bits 1 e 0)
+    SHL  R6, 2                    ; formato do porto dos semáforos (número do semáforo tem de estar nos bits 7 a 2, cor nos bits 1 e 0)
+    ADD  R6, R2                   ; junta cor do semáforo (que fica nos bits 1 e 0)
     MOV  R11, SEMAFOROS           ; endereço do porto dos semáforos no módulo dos comboios
-    MOVB [R11], R5                ; atualiza cor no semaforo propriamente dito
+    MOVB [R11], R6                ; atualiza cor no semaforo propriamente dito
+	
     POP R11                       ; repõe os valores anteriores dos registos a partir das cópias guardadas na pilha
     POP R10
-    POP R5
+    POP R6
 	RET
 
 				
@@ -283,6 +291,7 @@ agulhas:
 	PUSH R2
 	PUSH R3
 	PUSH R4
+	PUSH R5
 	PUSH R7
 	PUSH R8
 	PUSH R9
@@ -292,13 +301,14 @@ agulhas:
 	BIT R8,0
 	JZ agulhas_fim
 	
-	MOV R7, MASCARA_2
+	MOV R7, mascara_2
 	MOV R3, AGULHAS
 	MOVB R2, [R3]
 	MOVB R4, [R3]
 	SHL R2, 6
 	SHR R2, 6
-	XOR R2, R7
+	MOV R5, [R7]
+	XOR R2, R5
 	SHR R4, 2
 	SHL R4, 2
 	ADD R4, R2
@@ -308,6 +318,7 @@ agulhas_fim:
 	POP R9
 	POP R8
 	POP R7
+	POP R5
 	POP R4
 	POP R3
 	POP R2
