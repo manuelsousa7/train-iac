@@ -10,10 +10,6 @@
 ; *													    
 ; **********************************************************************
 
-
-
-
-
 ; **********************************************************************
 ; * Constantes
 ; **********************************************************************
@@ -64,15 +60,15 @@ estado_botao_5:
 PLACE		0000H
 inicio:
 
-     MOV	SP, SP_inicial           ; inicializa SP para a palavra a seguir à última da pilha
-
-     MOV  R0, 0                    ; número do comboio 0
-     MOV	R9, SELECAO
-     SHL  R0, 4                    ; nº do comboio: bits 7 a 4
-	MOVB	[R9], R0				; o próximo comando vai alterar a velocidade do comboio indicado por R0
+    MOV	SP, SP_inicial         	  ; inicializa SP para a palavra a seguir à última da pilha
+    MOV  R0, 0                    ; número do comboio 0
+    MOV	R9, SELECAO
+    SHL  R0, 4                    ; nº do comboio: bits 7 a 4
+	MOVB	[R9], R0		      ; o próximo comando vai alterar a velocidade do comboio indicado por R0
 	MOV	R9, COMANDO
-     MOV  R1, 3                    ; sentido para a frente, velocidade máxima (3)
-	MOVB	[R9], R1                 ; põe comboio a andar
+    MOV  R1, 3                    ; sentido para a frente, velocidade máxima (3)
+	MOVB	[R9], R1              ; põe comboio a andar
+
 
 ciclo:
      CALL	botao_5                  ; testa o botão de pressão 5 e troca a cor do semáforo 5 quando for premido
@@ -232,11 +228,6 @@ atualiza_cor_semaforo:
      POP R1
 	RET
 
-bascula:
-	 MOVB R1,[R9]	
-	 BIT R1, 1
-	 JNZ bascula
-     JMP  le_botoes                ; vai novamente ler os botões
 				
 
 
