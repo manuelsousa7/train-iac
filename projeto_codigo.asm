@@ -139,7 +139,7 @@ botoes:
 espera_botao_premido:
     MOVB	R1, [R10]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
     AND  R1, R4                    ; testa o botão de pressão x (indice depende da mascara_1)
-    JZ   botoes_fim              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
+    JZ   botoes_sub              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
 
 botao_premido:                     ; botão foi premido! Pode trocar a cor e passar ao estado 1
     MOV  R1, R6                    ; número do semáforo cuja cor é para trocar
@@ -150,11 +150,7 @@ botao_premido:                     ; botão foi premido! Pode trocar a cor e pas
 	MOV	[R10], R11			; passa ao estado 1 (atualiza na variável)
 	JMP	botoes_sub              ; mas só na próxima iteração. Agora sai  <---------------------------------
 
-botoes_1:					; estado 1 - À espera que o botão seja libertado <-------------------------------
-	CMP	R11, 1
-	JNZ	botoes_sub              ; se estado desconhecido, sai e ignora
-
-espera_botao_livre:
+espera_botao_livre:				;										<----------------------------------------
     MOV	R9, TECLADO_1       ; endereço do porto dos botões de pressão
     MOVB R1, [R9]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
     AND  R1, R4                    ; testa o botão de pressão x (indice depende da mascara)
@@ -165,7 +161,6 @@ espera_botao_livre:
      
 botoes_sub:
 	ROL R4,1
-botoes_fim:
 	MOV [R3], R4
 	ADD R6, 1
 botoes_fim_2:
