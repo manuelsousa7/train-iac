@@ -58,18 +58,23 @@ cores_semaforos:                   ; tabela para as cores dos semáforos (VERDE,
      STRING    SEM_VERDE           ; cor do semáforo 9
 
 estado_botoes:
-     WORD      0                   ; estado atual do botao 0
-     WORD      0                   ; estado atual do botao 1
-	 WORD      0                   ; estado atual do botao 2
-	 WORD      0                   ; estado atual do botao 3
-	 WORD      0                   ; estado atual do botao 4
-	 WORD      0                   ; estado atual do botao 5
-	 WORD      0                   ; estado atual do botao 6
-	 WORD      0                   ; estado atual do botao 7
+     STRING      0                   ; estado atual do botao 0
+     STRING      0                   ; estado atual do botao 1
+	 STRING      0                   ; estado atual do botao 2
+	 STRING      0                   ; estado atual do botao 3
+	 STRING      0                   ; estado atual do botao 4
+	 STRING      0                   ; estado atual do botao 5
+	 STRING      0                   ; estado atual do botao 6
+	 STRING      0                   ; estado atual do botao 7
 mascara_1:
-	WORD		1
+	STRING		1
 mascara_2:
-	WORD		3
+	STRING		3
+agulhas:
+	STRING 0; Estado da Agulha 1 
+	STRING 0; Estado da Agulha 2	
+	STRING 0; Estado da Agulha 3
+	STRING 0; Estado da Agulha 4
 
 ; **********************************************************************
 ; * Código
@@ -139,7 +144,7 @@ botoes:
 espera_botao_premido:
     MOVB	R1, [R10]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
     AND  R1, R4                    ; testa o botão de pressão x (indice depende da mascara_1)
-    JZ   botoes_sub              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
+    JZ   botoes_fim              ; se o bit está a zero, o botão não está carregado. Tem de esperar que seja premido
 
 botao_premido:                     ; botão foi premido! Pode trocar a cor e passar ao estado 1
     MOV  R1, R6                    ; número do semáforo cuja cor é para trocar
@@ -150,7 +155,11 @@ botao_premido:                     ; botão foi premido! Pode trocar a cor e pas
 	MOV	[R10], R11			; passa ao estado 1 (atualiza na variável)
 	JMP	botoes_sub              ; mas só na próxima iteração. Agora sai  <---------------------------------
 
-espera_botao_livre:				;										<----------------------------------------
+botoes_1:					; estado 1 - À espera que o botão seja libertado <-------------------------------
+	CMP	R11, 1
+	JNZ	botoes_sub              ; se estado desconhecido, sai e ignora
+
+espera_botao_livre:
     MOV	R9, TECLADO_1       ; endereço do porto dos botões de pressão
     MOVB R1, [R9]                 ; lê o estado dos botões (modo byte, pois o periférico é de 8 bits)
     AND  R1, R4                    ; testa o botão de pressão x (indice depende da mascara)
@@ -161,6 +170,7 @@ espera_botao_livre:				;										<----------------------------------------
      
 botoes_sub:
 	ROL R4,1
+botoes_fim:
 	MOV [R3], R4
 	ADD R6, 1
 botoes_fim_2:
@@ -292,7 +302,7 @@ agulhas:
 	PUSH R9
 	
 	MOV R9, BOTOES_PRESSAO
-	MOV R8, [R9]
+	MOVB R8, [R9]
 	BIT R8,0
 	JZ agulhas_fim
 	
@@ -302,12 +312,12 @@ agulhas:
 	MOVB R4, [R3]
 	SHL R2, 6
 	SHR R2, 6
-	MOV R5, [R7]
+	MOVB R5, [R7]
 	XOR R2, R5
 	SHR R4, 2
 	SHL R4, 2
 	ADD R4, R2
-	MOV [R3], R4
+	MOVB [R3], R4
 	
 agulhas_fim:
 	POP R9
@@ -319,6 +329,19 @@ agulhas_fim:
 	POP R2
 	RET
 
+;AGULHAS
 
 
+;	agulhas:
+
+;		STRING  0 agulha 0
+;		STRING	0 agulha 1
+;		STRING	0 agulha 2
+;		STRING	1 agulha 3
+;		ler registo somar agulha
+
+;SLIDERS
+;0FH mascara para sliders
+
+;SHR 4 vezes
 
